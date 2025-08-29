@@ -6,52 +6,7 @@ This project is configured as a Visual Studio solution and uses the **GLM (OpenG
 
 ## Example Output
 
-(This is a conceptual example of what a rendered cube might look like in the console)
-
-```
-
-                               -:
-                              ===+=+%                            =
-                             =%%+=+%%=:                         *%# .+%%*
-                            =%%%==+==+++:                       %%% =%-==
-                           -=++=--===--===-                     %%+*+
-                          --++=-=======-------:                 +%%-%%
-                          -+%=====+++=---===------:::           -*+**==
-                         ==%=-===++++++++++=----==-===-=:-:::--=-+%==-**
-                        =++*--++%%%++++++++---===++++++++====-==-=%+=*+%%
-                        ++*+-+++%%%%%%%%++++====++++++%+========.:%%+%*%%%=%
-                       +%**==++%%%%%%%%%%++++===+++++#%%++++===+-%%+%****
-                       %***=+++%%%**%%%%++++===%++%%%#%%++++=++==+%%%%**%+
-                      +***+%++**%*******+++++=%%%*%%%%%++%%++++==+%%%***%%=
-                     %**++%%++**********++++++*%%**%%%%%+%%++%++=%%%%%**%++
-                    %**%%%%+++%********%%+%%+******%*%**%%%%%%%%+++***%*%+==
-                   +**=+++%*:=%%*******%%-%%************%%%*%%%%+++%+%%%==+%+
-                   %+  -++%%+-++%%****+%=%%%******************+-===%%%+++%%*+*
-                  %=   * +%%=+++%%%%**+%%=%******%**********+++==-==--=++%+***
-                 %*      *---=%%+%%%%*%%+%%**%************++++      ----:-%%*
-                %+       +**=+-=+**%%%+-+%**%************+%%              =
-                -+       ++ *  :=++++%++***%***********+%%
-               ==:      -*       -====-+***%%********%+%
-              -=-       +%        ----=+*%%*%%*****%%%+
-                -      -%             +%***%%%****%%+
-                       %%             =**=::+%%**%%+
-                       *+            =%*%   --%+%%+
-                      =%=            =**    +--++++
-                       %=            %*     %+%+=
-                        =           **+    -%*=
-                                    +%     %%*
-                                   %+      **
-                                   -+     :*=
-                                  -%=     *+
-                                 -==%    -%
-                                 =%--    %*
-                                  -*-    %%
-                                         %*
-                                        +%*
-                                        %*=
-                                         +=
-
-```
+![ASCII Cow Render](asciicow.gif)
 
 ## Features
 
@@ -66,9 +21,7 @@ This project is configured as a Visual Studio solution and uses the **GLM (OpenG
 *   **Visual Studio 2022:** The project is set up as a Visual Studio solution (`.sln`).
 *   **GLM (OpenGL Mathematics):** A header-only C++ mathematics library for graphics software.
 
-## Getting Started
-
-### Prerequisites
+## Prerequisites
 
 *   Windows Operating System
 *   Visual Studio (with the "Desktop development with C++" workload installed)
@@ -77,4 +30,4 @@ This project is configured as a Visual Studio solution and uses the **GLM (OpenG
 ## Dependencies
 
 *   **[GLM (OpenGL Mathematics)](https://github.com/g-truc/glm)**: Included as a Git submodule.
-*   **OBJ_Loader.h**: A simple, header-only OBJ file loader created by [Emir Demirovic](https://github.com/emirovic/OBJ_Loader), included directly in the repository.
+*   **OBJ_Loader.h**: A simple, header-only OBJ file loader, included directly in the repository.
