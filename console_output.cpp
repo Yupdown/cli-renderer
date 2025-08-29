@@ -1,7 +1,13 @@
 #include <Windows.h>
+#include <commdlg.h>
 #include "glm/glm/glm.hpp"
 #include "glm/glm/ext.hpp"
 #include "OBJ_Loader.h"
+#include <iostream>
+#include <string>
+#include <limits>
+
+#pragma comment(lib, "Comdlg32.lib")
 
 std::string windowTitle = "OpenGLExperiment";
 
@@ -12,6 +18,10 @@ constexpr int SCREEN_HEIGHT = 100;
 glm::vec4 valueBuffer[SCREEN_WIDTH][SCREEN_HEIGHT];
 float depthBuffer[SCREEN_WIDTH][SCREEN_HEIGHT];
 char textBuffer[(SCREEN_WIDTH + 1) * SCREEN_HEIGHT];
+
+// Globals for model normalization
+glm::vec3 modelCenter(0.0f);
+float modelScale = 1.0f;
 
 class ShaderProgram
 {
@@ -56,15 +66,13 @@ public:
 
 	glm::vec4 FragmentShader(const Data& in)
 	{
-		// return glm::vec4(glm::vec3(in.color), 1.0f);
-
 		glm::vec3 normal = glm::normalize(in.normal);
 		glm::vec3 view_Direction = glm::normalize(viewPosition - glm::vec3(in.position));
 
 		float ambient_Light = 1.0f;
 		glm::vec3 ambient = ambientColor * ambient_Light;
 
-		float diffuse_Light = glm::max(dot(normal, lightDirection), 0.0f);
+		float diffuse_Light = glm::max(dot(normal, -lightDirection), 0.0f);
 		glm::vec3 diffuse = diffuseColor * diffuse_Light;
 
 		float shiny = 64.0f;
@@ -73,6 +81,7 @@ public:
 		specular_Light = pow(specular_Light, shiny);
 		glm::vec3 specular = specularColor * specular_Light;
 
+	
 		glm::vec3 color = (ambient + diffuse + specular) * glm::vec3(in.color);
 		return glm::vec4(color, 1.0);
 	}
@@ -94,6 +103,7 @@ inline float CCW(float ax, float ay, float bx, float by, float cx, float cy)
 void DrawScene();
 void Timer();
 void LoadPolygon(const char* fileName);
+bool OpenFile(char* outPath, int maxPathSize);
 
 float aspect = 1.0f;
 float elapsedTime = 0.0f;
@@ -118,7 +128,17 @@ int main(int argc, char** argv)
 	viewportTransform[3][0] = SCREEN_WIDTH * 0.5f;
 	viewportTransform[3][1] = SCREEN_HEIGHT * 0.5f;
 
-	LoadPolygon("cow.obj");
+    char filePath[MAX_PATH] = { 0 };
+    if (OpenFile(filePath, MAX_PATH))
+    {
+        LoadPolygon(filePath);
+    }
+    else
+    {
+        // Handle the case where the user cancels the dialog
+        std::cout << "No file selected. Exiting." << std::endl;
+        return 1;
+    }
 
 	while (true)
 	{
@@ -130,30 +150,65 @@ int main(int argc, char** argv)
 	return 0;
 }
 
-void Timer()
+bool OpenFile(char* outPath, int maxPathSize)
 {
+    OPENFILENAMEA ofn;       // Common dialog box structure
+    CHAR szFile[260] = { 0 }; // Buffer for file name
 
+    // Initialize OPENFILENAME
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL; // If you have a window handle, assign it here
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.lpstrFilter = "OBJ Files (*.obj)\0*.obj\0All Files (*.*)\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.lpstrFileTitle = NULL;
+    ofn.nMaxFileTitle = 0;
+    ofn.lpstrInitialDir = NULL;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+    if (GetOpenFileNameA(&ofn) == TRUE)
+    {
+        strncpy_s(outPath, maxPathSize, ofn.lpstrFile, _TRUNCATE);
+        return true;
+    }
+    return false;
 }
 
-void DrawScene()
-{
-	elapsedTime += 0.05f; // static_cast<float>(clock()) / 1000.0f;
 
-	// clear buffers
-	memset(valueBuffer, 0, sizeof(valueBuffer));
-	memset(depthBuffer, 0, sizeof(depthBuffer));
+void Timer()
+{
+	elapsedTime = static_cast<float>(clock()) / 100.0f;
 
 	// calculate and append transform matrix
 	float aspect = static_cast<float>(SCREEN_WIDTH) / SCREEN_HEIGHT;
-	glm::mat4 t = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.1f, -1.5f)); // glm::sin(elapsedTime) - 2.5f));
+
+	// 1. Create a translation matrix to move the model's center to the origin.
+	glm::mat4 center_t = glm::translate(glm::mat4(1.0f), -modelCenter);
+
+	// 2. Create a scaling matrix to normalize the model's size.
+	glm::mat4 s = glm::scale(glm::mat4(1.0f), glm::vec3(modelScale));
+
+	// 3. Create a rotation matrix based on elapsed time.
 	glm::mat4 r = glm::rotate(glm::mat4(1.0f), 0.3f, glm::vec3(1.0f, 0.0f, 0.0f));
 	float rt = elapsedTime * 0.1f;
 	r = glm::rotate(r, rt, glm::vec3(0.0f, 1.0f, 0.0f));
 	r = glm::rotate(r, rt, glm::vec3(1.0f, 0.0f, 0.0f));
-	glm::mat4 s = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f) * 0.1f);
 
-	program->worldTransform = t * r * s;
-	program->projectTransform = glm::perspective(glm::radians(60.0f), aspect, 0.1f, 100.0f); //glm::ortho(-aspect, aspect, -1.0f, 1.0f, -1.0f, 1.0f);
+	// 4. Create a translation matrix to position the model in front of the camera.
+	glm::mat4 view_t = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.5f));
+
+	// Combine transformations: first center, then scale, then rotate, then position in view.
+	program->worldTransform = view_t * r * s * center_t;
+	program->projectTransform = glm::perspectiveRH(glm::radians(60.0f), aspect, 0.1f, 100.0f);
+}
+
+void DrawScene()
+{
+	// clear buffers
+	memset(valueBuffer, 0, sizeof(valueBuffer));
+	memset(depthBuffer, 0, sizeof(depthBuffer));
 
 	auto funcGetT = [](const glm::vec4& lhs, const glm::vec4& rhs, float y) {
 		float t = (y - lhs.y) / (rhs.y - lhs.y);
@@ -174,6 +229,7 @@ void DrawScene()
 			dataIn.normal = glm::vec4(NORMAL_DATA[vindex], NORMAL_DATA[vindex + 1], NORMAL_DATA[vindex + 2], 0.0f);
 
 			vertexData[offset] = program->VertexShader(dataIn);
+		
 			glm::vec4 vClip = vertexData[offset].position;
 
 			if (vClip.w != 0.0f)
@@ -248,7 +304,7 @@ void DrawScene()
 	}
 
 	glm::vec4 offset = glm::vec4(0.8f, 0.5f, 0.0f, 1.0f);
-	glm::vec4 textPos = program->projectTransform * t * s * offset;
+	glm::vec4 textPos = program->projectTransform * program->worldTransform * offset;
 	if (textPos.w != 0.0f)
 		textPos /= textPos.w;
 	textPos = viewportTransform * textPos;
@@ -267,6 +323,11 @@ void DrawScene()
 void LoadPolygon(const char* fileName)
 {
 	using namespace objl;
+
+    // Clear previous model data
+    VERTEX_DATA.clear();
+    NORMAL_DATA.clear();
+    INDEX_DATA.clear();
 
 	Loader loader;
 	if (!loader.LoadFile(fileName))
@@ -295,4 +356,23 @@ void LoadPolygon(const char* fileName)
 			INDEX_DATA.push_back(u);
 		}
 	}
+
+    // Calculate bounding box and normalization parameters
+    if (VERTEX_DATA.empty())
+        return;
+
+    glm::vec3 minBounds(std::numeric_limits<float>::max());
+    glm::vec3 maxBounds(std::numeric_limits<float>::lowest());
+
+    for (size_t i = 0; i < VERTEX_DATA.size(); i += 3)
+    {
+        glm::vec3 vertex(VERTEX_DATA[i], VERTEX_DATA[i + 1], VERTEX_DATA[i + 2]);
+        minBounds = glm::min(minBounds, vertex);
+        maxBounds = glm::max(maxBounds, vertex);
+    }
+
+    modelCenter = (maxBounds + minBounds) * 0.5f;
+    glm::vec3 size = maxBounds - minBounds;
+    float maxDim = glm::max(size.x, glm::max(size.y, size.z));
+    modelScale = 1.0f / maxDim;
 }
